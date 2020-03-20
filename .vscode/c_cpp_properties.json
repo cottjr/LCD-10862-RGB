@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "C:\\Users\\carlo\\OneDrive\\My Downloads\\Arduino\\Arduino 1.8.8\\arduino-1.8.8\\tools\\**",
+                "C:\\Users\\carlo\\OneDrive\\My Downloads\\Arduino\\Arduino 1.8.8\\arduino-1.8.8\\hardware\\arduino\\avr\\**"
+            ],
+            "forcedInclude": [
+                "C:\\Users\\carlo\\OneDrive\\My Downloads\\Arduino\\Arduino 1.8.8\\arduino-1.8.8\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
+            ],
+            "intelliSenseMode": "msvc-x64"
+        }
+    ],
+    "version": 4
+}
