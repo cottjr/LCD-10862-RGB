@@ -34,7 +34,7 @@
 // These items more relevant to driving the LCD module
 */
 
-#define MAX_OUT_CHARS 17 //max nbr of characters to be sent on any one serial command,
+#define MAX_OUT_CHARS 18 //max nbr of characters to be sent on any one serial command,
 // plus the terminating character sprintf needs to prevent it from overwriting following memory locations, yet still
 //    send the complete 16 character string to the LCD
 // sprintf: what a terrible construct...
@@ -102,9 +102,10 @@ struct config_t
 
 // Purpose
 //  drive RGB backlight LED's with PWM
+//  reference Branch "backlight8colorDigital"
 // Reference also
 //  comments in loop() below // Another handy reference for using sprintf to the LCD
-void BacklightColor(int R, int G, int B)
+void backlightColorPWM(int R, int G, int B)
 {
   // accept standard RGB color specs, with values from 0..255
   // for a nice RGB value selection chart, see this source
@@ -118,28 +119,86 @@ void BacklightColor(int R, int G, int B)
   analogWrite(BluePin, B);
 }
 
-void setupLCD()
+int clip(int whatValue, int whatLimit)
 {
+  if (whatValue > abs(whatLimit))
+  {
+    return abs(whatLimit);
+  }
+  else if (whatValue < -abs(whatLimit))
+  {
+    return -abs(whatLimit);
+  }
+  else
+  {
+    return whatValue;
+  }
+}
 
-  lcd.begin(16, 2);
+// Purpose
+//  Write 4 wheel integer values to the 16 Char by 2 line LCD display
+//  Primarily intended for encoder related position or velocity values
+//  Attempt to clip integer values to allowed ranges
+//  HOWEVER- Note that this fails for values somewhat larger than 3,000
+//  => seems to be some issue with sprintf() on arduino
+// Format
+//  Front Left          Front Right
+//  Rear Left           Rear Right
+//  F	L	+/-	1	2	3	4	5	_	R	'+/-	1	2	3	4	5
+//  R	L	'+/-	1	2	3	4	5	_	R	'+/-	1	2	3	4	5
+// Encoder Delta Range 29999 (values up to this limit DO display correctly)
+//  230.8	20ms periods at max 130ticks/period velocity
+//  4.6	seconds at max velocity
+//  => must stay under ~ 4.5 sec at max velocity to keep encoder deltas w/in allowed range
+// Encoder Delta Range 99999 (but 99999 doesn't display correctly)
+//  769.2	20ms periods at max 130ticks/period velocity
+//  15.4	seconds at max velocity
+void write4wheelIntegersToLCD(int FL, int FR, int RL, int RR)
+{
+  const int clipMax = 29999;
 
-  // Briefly show Arduino status (ie. from legacy Laser Cutter Usage Timer, non-volatile values stored in EEPROM)
-  sprintf(buffer, "Version: %02d", laserTime.thisVersion);
-  sprintf(buffer2, "Writes: %06d", laserTime.EEPROMwriteCount);
+  sprintf(buffer, "FL%+5d R%+5d", clip(FL, clipMax), clip(FR, clipMax));
+  sprintf(buffer2, "RL%+5d R%+5d", clip(RL, clipMax), clip(RR, clipMax));
 
   lcd.setCursor(0, 0);
   lcd.print(buffer);
 
   lcd.setCursor(0, 1);
   lcd.print(buffer2);
+}
 
-  // set display backlight to Purple
-  BacklightColor(255, 0, 255);
+void setupLCD()
+{
 
-  delay(3000);
+  lcd.begin(16, 2);
+
+  // // set display backlight to Purple
+  // backlightColorPWM(255, 0, 255);
+
+  // // Briefly show Arduino status (ie. from legacy Laser Cutter Usage Timer, non-volatile values stored in EEPROM)
+  // sprintf(buffer, "Version: %02d", laserTime.thisVersion);
+  // sprintf(buffer2, "Writes: %06d", laserTime.EEPROMwriteCount);
+
+  // lcd.setCursor(0, 0);
+  // lcd.print(buffer);
+
+  // lcd.setCursor(0, 1);
+  // lcd.print(buffer2);
+
+  // delay(1500);
+
+  // set display backlight to White
+  backlightColorPWM(255, 255, 255);
+  // writeEncoderPosToLCD(-12345,23456,12345,-23456);
+  // writeEncoderPosToLCD(34567,45678,12345,-23456);
+  // writeEncoderPosToLCD(-18765, -17654, 12345, -23456);
+  // writeEncoderPosToLCD(-18765, -17654, 12345, 30000);
+  write4wheelIntegersToLCD(-18, -17, 5, 30000);
+
+  delay(8000);
 
   // set display backlight to Red
-  BacklightColor(255, 0, 0);
+  backlightColorPWM(255, 0, 0);
 
   // show random text
   sprintf(buffer, "Yup-random stuff");
@@ -151,10 +210,10 @@ void setupLCD()
   lcd.setCursor(0, 1);
   lcd.print(buffer2);
 
-  delay(3000);
+  delay(1500);
 
   // set display backlight to Green
-  BacklightColor(0, 255, 0);
+  backlightColorPWM(0, 255, 0);
 
   // show random text
   sprintf(buffer, "And Green       ");
@@ -166,10 +225,10 @@ void setupLCD()
   lcd.setCursor(0, 1);
   lcd.print(buffer2);
 
-  delay(3000);
+  delay(1500);
 
   // set display backlight to Blue
-  BacklightColor(0, 0, 255);
+  backlightColorPWM(0, 0, 255);
 
   // show random text
   sprintf(buffer, "And Blue        ");
@@ -181,10 +240,10 @@ void setupLCD()
   lcd.setCursor(0, 1);
   lcd.print(buffer2);
 
-  delay(3000);
+  delay(1500);
 
   // set display backlight to blue-green
-  BacklightColor(0, 255, 255);
+  backlightColorPWM(0, 255, 255);
 
   // show random text
   sprintf(buffer, "    sort of     ");
@@ -196,10 +255,10 @@ void setupLCD()
   lcd.setCursor(0, 1);
   lcd.print(buffer2);
 
-  delay(3000);
+  delay(1500);
 
   // set display backlight to white-ish
-  BacklightColor(255, 255, 255);
+  backlightColorPWM(255, 255, 255);
 
   // show random text
   sprintf(buffer, "    White       ");
@@ -211,10 +270,10 @@ void setupLCD()
   lcd.setCursor(0, 1);
   lcd.print(buffer2);
 
-  delay(3000);
+  delay(1500);
 
   // set display backlight to Yellow
-  BacklightColor(255, 255, 0);
+  backlightColorPWM(255, 255, 0);
 
   // show random text
   sprintf(buffer, "last not least  ");
@@ -225,6 +284,13 @@ void setupLCD()
 
   lcd.setCursor(0, 1);
   lcd.print(buffer2);
+
+  delay(1500);
+
+  // set display backlight to white-ish
+  backlightColorPWM(255, 255, 255);
+  write4wheelIntegersToLCD(12345, -23456, -34567, 45678);
+  delay(15000);
 }
 
 // Setup mostly Legacy stuff from Laser Cutter Usage Timer.
@@ -324,15 +390,15 @@ void loop()
     // set backlight back to Blue when laser not firing and no time accumulated
     if (analogVal < anaLowThreshold)
     { // go red
-      BacklightColor(255, 0, 0);
+      backlightColorPWM(255, 0, 0);
     }
     else if (userMillis > 0)
     { // go yellowish
-      BacklightColor(255, 245, 0);
+      backlightColorPWM(255, 245, 0);
     }
     else
     { // go Blue
-      BacklightColor(0, 0, 255);
+      backlightColorPWM(0, 0, 255);
     }
 
     // consider checking hysteresis logic - it appears that anaLowThreshold alone determines laser on/off state
