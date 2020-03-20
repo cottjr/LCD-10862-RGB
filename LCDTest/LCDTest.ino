@@ -3,6 +3,10 @@
 #include <LiquidCrystal.h>
 #include <stdio.h>
 
+// Purpose: provide handy reference code as a template for driving the Sparkfun LCD-10862 w- RGB Backlight
+// It is largely derived from https://github.com/cottjr/DMS-Laser-Cutter-Usage-Timer, commit af40041 from 2016 March 28
+// That source was originally conceived to track usage hours on a consumable laser tube at the Dallas Makerspace
+
 /*
  This sketch shows two timers. One is user resettable and one is not. 
  The timers keep track of how long an analog input goes past a threshold.
@@ -10,7 +14,7 @@
  any point in a minute (even less than a second) that minute is counted 
  towards the time.
  
-  The circuit:
+  The circuit:          nano pins   -> Mega2560 pin map, targeting the Digital Expansion connector J38 of the MoebiusTech 4x motor driver board
  * LCD RS pin to digital pin 12     -> 25
  * LCD Enable pin to digital pin 11 -> 28
  * LCD D4 pin to digital pin 5      -> 29
@@ -26,20 +30,26 @@
  * button input for reset -> make on Nano D6, "pin 6"
  */
 
- // Kent - altered eeprom read and write calls to extend eeprom life
+
+// These items more relevant to driving the LCD module
 
 #define MAX_OUT_CHARS 17  //max nbr of characters to be sent on any one serial command,
 // plus the terminating character sprintf needs to prevent it from overwriting following memory locations, yet still
 //    send the complete 16 character string to the LCD
 // sprintf: what a terrible construct...
+char   buffer[MAX_OUT_CHARS];  //buffer used to format a line (+1 is for trailing 0)
+char   buffer2[MAX_OUT_CHARS];  //buffer used to format a line (+1 is for trailing 0)
 
 // initialize the library with the numbers of the interface pins
-// LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-LiquidCrystal lcd(25, 28, 29, 30, 32, 33);
+// LiquidCrystal lcd(12, 11, 5, 4, 3, 2);   // Original Arduino Nano pin map
+LiquidCrystal lcd(25, 28, 29, 30, 32, 33);  // Arduino Mega2560 pin map, targeting the Digital Expansion connector J38 of the MoebiusTech 4x motor driver board
 
 int RedPin = 41;    //6;			// pin for driving the Red backlight LED  (Nano D6)
 int GreenPin = 40;  //9;			// pin for driving the Green backlight LED  (Nano D9)
 int BluePin = 47;   //10;			// pin for driving the Blue backlight LED  (Nano D10)
+
+// version number for this program.  simply counting releases
+const unsigned int ThisCurrentVersion = 3;	
 
 
 const unsigned long second = 1000;
@@ -74,11 +84,9 @@ int tubeSeconds = 0;
 unsigned long tubeMillis = 0;        
 unsigned long lastWriteToEEPROMMillis = 0;   // number of millis that the EEPROM was laser written to
 
-char   buffer[MAX_OUT_CHARS];  //buffer used to format a line (+1 is for trailing 0)
-char   buffer1[MAX_OUT_CHARS];  //buffer used to format a line (+1 is for trailing 0)
-char   buffer2[MAX_OUT_CHARS];  //buffer used to format a line (+1 is for trailing 0)
 
-const unsigned int ThisCurrentVersion = 3;	// version number for this program.  simply counting releases
+char   buffer1[MAX_OUT_CHARS];  //buffer used to format a line (+1 is for trailing 0)
+
 
 struct config_t
 {
@@ -91,6 +99,141 @@ struct config_t
     unsigned int thisVersion;		// version number of this software
 } laserTime;
 
+
+// Purpose
+//  drive RGB backlight LED's with PWM
+// Reference also
+//  comments in loop() below // Another handy reference for using sprintf to the LCD
+
+void BacklightColor ( int R, int G, int B) {
+// accept standard RGB color specs, with values from 0..255
+// for a nice RGB value selection chart, see this source
+//  http://blogs.msdn.com/blogfiles/davidlean/WindowsLiveWriter/SQLReportingHowtoConditionalColor24Funct_B98C/image_8.png
+//  http://blogs.msdn.com/b/davidlean/archive/2009/02/17/sql-reporting-how-to-conditional-color-2-4-functions-for-tables-charts.aspx
+// render that color by writing appropriate values to PWM based pins
+// This assumes that dropping resistors are roughly matched to provide reasonable color balancing  
+
+  analogWrite(RedPin, R);
+  analogWrite(GreenPin, G);
+  analogWrite(BluePin, B);
+}
+
+void setupLCD()
+{
+  
+  lcd.begin(16, 2);
+
+  // Briefly show Arduino status (ie. from legacy Laser Cutter Usage Timer, non-volatile values stored in EEPROM)
+  sprintf(buffer, "Version: %02d", laserTime.thisVersion);
+  sprintf(buffer2, "Writes: %06d", laserTime.EEPROMwriteCount);
+
+  lcd.setCursor(0,0);
+  lcd.print (buffer);
+
+  lcd.setCursor(0,1);
+  lcd.print (buffer2);
+  
+  // set display backlight to Purple
+  BacklightColor ( 255, 0, 255);
+
+  delay(3000);
+
+  // set display backlight to Red
+  BacklightColor ( 255, 0, 0);
+
+  // show random text 
+  sprintf(buffer,  "Yup-random stuff");
+  sprintf(buffer2, "   Hello Red    ");
+
+  lcd.setCursor(0,0);
+  lcd.print(buffer);
+
+  lcd.setCursor(0,1);
+  lcd.print(buffer2);
+
+  delay(3000);
+
+  // set display backlight to Green
+  BacklightColor ( 0, 255, 0);
+
+  // show random text 
+  sprintf(buffer,  "And Green       ");
+  sprintf(buffer2, "   Hi there     ");
+
+  lcd.setCursor(0,0);
+  lcd.print(buffer);
+
+  lcd.setCursor(0,1);
+  lcd.print(buffer2);
+
+  delay(3000);
+
+  // set display backlight to Blue
+  BacklightColor ( 0, 0, 255);
+
+  // show random text 
+  sprintf(buffer,  "And Blue        ");
+  sprintf(buffer2, "                ");
+
+  lcd.setCursor(0,0);
+  lcd.print(buffer);
+
+  lcd.setCursor(0,1);
+  lcd.print(buffer2);
+
+  delay(3000);
+
+  // set display backlight to blue-green
+  BacklightColor ( 0, 255, 255);
+
+  // show random text 
+  sprintf(buffer,  "    sort of     ");
+  sprintf(buffer2, "   blue-green   ");
+
+  lcd.setCursor(0,0);
+  lcd.print(buffer);
+
+  lcd.setCursor(0,1);
+  lcd.print(buffer2);
+
+  delay(3000);
+
+  // set display backlight to white-ish
+  BacklightColor ( 255, 255, 255);
+
+  // show random text 
+  sprintf(buffer,  "    White       ");
+  sprintf(buffer2, "     ish        ");
+
+  lcd.setCursor(0,0);
+  lcd.print(buffer);
+
+  lcd.setCursor(0,1);
+  lcd.print(buffer2);
+
+  delay(3000);
+
+  // set display backlight to Yellow
+  BacklightColor ( 255, 255, 0);
+
+  // show random text 
+  sprintf(buffer,  "last not least  ");
+  sprintf(buffer2, "   Yellow       ");
+
+  lcd.setCursor(0,0);
+  lcd.print(buffer);
+
+  lcd.setCursor(0,1);
+  lcd.print(buffer2);
+
+}
+
+
+
+
+
+// Setup mostly Legacy stuff from Laser Cutter Usage Timer.
+//  nice reference for certain tricks, but otherwise not relevant to LCD interface
 void setup() {
   pinMode(userResetPin, INPUT);
   pinMode(TestOutPin, OUTPUT);
@@ -111,34 +254,12 @@ void setup() {
 	addr = ROUND_ROBIN_EEPROM_write(laserTime);
   }
   
-  
-  // Briefly show Arduino status
-  sprintf(buffer, "Version: %02d", laserTime.thisVersion);
-  sprintf(buffer2, "Writes: %06d", laserTime.EEPROMwriteCount);
-  
-  lcd.begin(16, 2);
-  lcd.setCursor(0,0);
-  lcd.print (buffer);
-  lcd.setCursor(0,1);
-  lcd.print (buffer2);
-  
-  // set display backlight to Purple
-  BacklightColor ( 255, 0, 255);
+  // Setup those items particular to driving the LCD
+  setupLCD();
 
-  delay(5000);	// cheap debouncing trick  
-
-  
-  // Initialize the LCD 
-//  lcd.begin(16, 2);
-//  lcd.setCursor(0,0);
-//  lcd.println("User    00:00:00");
-//  lcd.setCursor(0,1);
-//  lcd.print  ("Tube 00000:00:00");
-  
-  // start with the display backlight as Blue
-//  BacklightColor ( 0, 0, 255);
-
-  
+  // rest is legacy stuff from Laser Cutter Usage Timer
+  delay(5000);	// cheap debouncing trick
+ 
   Serial.print("Values stored in EEPROM address ");
   Serial.println(addr);
 
@@ -159,20 +280,6 @@ void setup() {
   Serial.println("");
 }
 
-void BacklightColor ( int R, int G, int B) {
-// accept standard RGB color specs, with values from 0..255
-// for a nice RGB value selection chart, see this source
-//  http://blogs.msdn.com/blogfiles/davidlean/WindowsLiveWriter/SQLReportingHowtoConditionalColor24Funct_B98C/image_8.png
-//  http://blogs.msdn.com/b/davidlean/archive/2009/02/17/sql-reporting-how-to-conditional-color-2-4-functions-for-tables-charts.aspx
-// render that color by writing appropriate values to PWM based pins
-  
-  int Gadj = G / 2; //approximation to account for observation that G is twice as bright as other colors
-					//   for the specific RGB display used in the Dallas Makerspace project
-					//this adjustment empirically tends to give approximately a yellow, when 255 R and 127 G are mixed)
-  analogWrite(RedPin, R);
-  analogWrite(GreenPin, Gadj);
-  analogWrite(BluePin, B);
-}
 
 void loop() {
 
@@ -289,13 +396,30 @@ void loop() {
   userMinutes = (userMillis-userHours*hour)/minute;
   userSeconds = (userMillis-userHours*hour-userMinutes*minute)/second;
 
+
+
+
+
+
+
+
+
+  // Another handy reference for using sprintf to the LCD
   sprintf(buffer,  "User    %02d:%02d:%02d", userHours,  userMinutes, userSeconds);
   sprintf(buffer2, "Tube %05d:%02d:%02d", tubeHours,  tubeMinutes, tubeSeconds);
 
-//    Serial.print("  buffer is: ");
-//    Serial.println(buffer);
-//    Serial.print("  buffer1 is: ");
-//    Serial.println(buffer1);
+  lcd.setCursor(0,0);
+  lcd.print(buffer);
+
+  lcd.setCursor(0,1);
+  lcd.print(buffer2);
+
+
+
+
+
+
+
 
   // Only write to EEPROM if the current value is more than 5 minutes from the previous EEPROM value
   // to reduce the number of writes to EEPROM, since any one location is only good for ~ 100,000 writes
@@ -360,13 +484,7 @@ void loop() {
 	Serial.print("  laserTime.thisVersion: ");
 	Serial.println(laserTime.thisVersion);
  	}
-  lcd.setCursor(0,0);
-  lcd.print(buffer);
-//  Serial.println(buffer);
 
-  lcd.setCursor(0,1);
-  lcd.print(buffer2);
-//  Serial.println(buffer2);
 
 }
 
