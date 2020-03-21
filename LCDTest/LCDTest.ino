@@ -49,6 +49,9 @@ int RedPin = 41;   //6;			// pin for driving the Red backlight LED  (Nano D6)
 int GreenPin = 40; //9;			// pin for driving the Green backlight LED  (Nano D9)
 int BluePin = 47;  //10;			// pin for driving the Blue backlight LED  (Nano D10)
 
+#define INPUT 0x0
+#define OUTPUT 0x1
+
 // version number for this program.  simply counting releases
 const unsigned int ThisCurrentVersion = 3;
 
@@ -101,11 +104,11 @@ struct config_t
 } laserTime;
 
 // Purpose
-//  drive RGB backlight LED's with PWM
-//  reference Branch "backlight8colorDigital"
+//  drive RGB backlight LED's with digital
+//  reference Branch "master" (which uses PWM)
 // Reference also
 //  comments in loop() below // Another handy reference for using sprintf to the LCD
-void backlightColorPWM(int R, int G, int B)
+void backlight8ColorDigital(int R, int G, int B)
 {
   // accept standard RGB color specs, with values from 0..255
   // for a nice RGB value selection chart, see this source
@@ -114,9 +117,16 @@ void backlightColorPWM(int R, int G, int B)
   // render that color by writing appropriate values to PWM based pins
   // This assumes that dropping resistors are roughly matched to provide reasonable color balancing
 
-  analogWrite(RedPin, R);
-  analogWrite(GreenPin, G);
-  analogWrite(BluePin, B);
+  unsigned char onOff;
+
+  (R == 0) ? onOff = 0 : onOff = 1;
+  digitalWrite(RedPin, onOff);
+
+  (G == 0) ? onOff = 0 : onOff = 1;
+  digitalWrite(GreenPin, onOff);
+
+  (B == 0) ? onOff = 0 : onOff = 1;
+  digitalWrite(BluePin, onOff);
 }
 
 int clip(int whatValue, int whatLimit)
@@ -187,8 +197,15 @@ void setupLCD()
 
   // delay(1500);
 
+  // set LCD RGB backlight LED pins to digital mode, capable of directly driving the common-cathode LEDs of the Sparkfun LCD-10862 module
+  //  this because it seems that arduino digitalWrite() sets the pin output mode differently from analogWrite() which is used for PWM
+  //  it appears that digitalWrite() relyies on a passive pullup resistor in the Arduino, whereas analogWrite() provides an active/switched output 'HIGH'
+  pinMode(RedPin, OUTPUT);
+  pinMode(GreenPin, OUTPUT);
+  pinMode(BluePin, OUTPUT);
+
   // set display backlight to White
-  backlightColorPWM(255, 255, 255);
+  backlight8ColorDigital(255, 255, 255);
   // writeEncoderPosToLCD(-12345,23456,12345,-23456);
   // writeEncoderPosToLCD(34567,45678,12345,-23456);
   // writeEncoderPosToLCD(-18765, -17654, 12345, -23456);
@@ -198,7 +215,7 @@ void setupLCD()
   delay(8000);
 
   // set display backlight to Red
-  backlightColorPWM(255, 0, 0);
+  backlight8ColorDigital(255, 0, 0);
 
   // show random text
   sprintf(buffer, "Yup-random stuff");
@@ -213,7 +230,7 @@ void setupLCD()
   delay(1500);
 
   // set display backlight to Green
-  backlightColorPWM(0, 255, 0);
+  backlight8ColorDigital(0, 255, 0);
 
   // show random text
   sprintf(buffer, "And Green       ");
@@ -228,7 +245,7 @@ void setupLCD()
   delay(1500);
 
   // set display backlight to Blue
-  backlightColorPWM(0, 0, 255);
+  backlight8ColorDigital(0, 0, 255);
 
   // show random text
   sprintf(buffer, "And Blue        ");
@@ -243,7 +260,7 @@ void setupLCD()
   delay(1500);
 
   // set display backlight to blue-green
-  backlightColorPWM(0, 255, 255);
+  backlight8ColorDigital(0, 255, 255);
 
   // show random text
   sprintf(buffer, "    sort of     ");
@@ -258,7 +275,7 @@ void setupLCD()
   delay(1500);
 
   // set display backlight to white-ish
-  backlightColorPWM(255, 255, 255);
+  backlight8ColorDigital(255, 255, 255);
 
   // show random text
   sprintf(buffer, "    White       ");
@@ -273,7 +290,7 @@ void setupLCD()
   delay(1500);
 
   // set display backlight to Yellow
-  backlightColorPWM(255, 255, 0);
+  backlight8ColorDigital(255, 255, 0);
 
   // show random text
   sprintf(buffer, "last not least  ");
@@ -288,7 +305,7 @@ void setupLCD()
   delay(1500);
 
   // set display backlight to white-ish
-  backlightColorPWM(255, 255, 255);
+  backlight8ColorDigital(255, 255, 255);
   write4wheelIntegersToLCD(12345, -23456, -34567, 45678);
   delay(15000);
 }
@@ -390,15 +407,15 @@ void loop()
     // set backlight back to Blue when laser not firing and no time accumulated
     if (analogVal < anaLowThreshold)
     { // go red
-      backlightColorPWM(255, 0, 0);
+      backlight8ColorDigital(255, 0, 0);
     }
     else if (userMillis > 0)
     { // go yellowish
-      backlightColorPWM(255, 245, 0);
+      backlight8ColorDigital(255, 245, 0);
     }
     else
     { // go Blue
-      backlightColorPWM(0, 0, 255);
+      backlight8ColorDigital(0, 0, 255);
     }
 
     // consider checking hysteresis logic - it appears that anaLowThreshold alone determines laser on/off state
