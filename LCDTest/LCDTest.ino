@@ -157,8 +157,12 @@ void write4wheelIntegersToLCD(int FL, int FR, int RL, int RR)
 {
   const int clipMax = 29999;
 
-  sprintf(buffer, "FL%+5d R%+5d", clip(FL, clipMax), clip(FR, clipMax));
-  sprintf(buffer2, "RL%+5d R%+5d", clip(RL, clipMax), clip(RR, clipMax));
+  // sprintf(buffer, "FL%+6d R%+6d", clip(FL, clipMax), clip(FR, clipMax));
+  // sprintf(buffer2, "RL%+6d R%+6d", clip(RL, clipMax), clip(RR, clipMax));
+
+  // consider replacign sprintf() with a better function, e.g. fmt::format_int, per https://www.zverovich.net/2013/09/07/integer-to-string-conversion-in-cplusplus.html
+  sprintf(buffer, "FL%+6d R%+6d", -12345, +23456);
+  sprintf(buffer2, "RL%d ",45678);
 
   lcd.setCursor(0, 0);
   lcd.print(buffer);
